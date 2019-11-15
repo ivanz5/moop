@@ -1,7 +1,7 @@
-#import glob
 import wx
 import xmltodict
 import json
+import db
 
 
 class Dialog(wx.Dialog):
@@ -70,7 +70,8 @@ class MainPanel(wx.Panel):
         self.selected_author_index = -1
         self.selected_book_index = -1
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.row_obj_dict = {}
+        self.last_author_id = 0
+        self.last_book_id = 0
 
         # Authors list
         self.list_ctrl = wx.ListCtrl(
@@ -88,17 +89,20 @@ class MainPanel(wx.Panel):
             self, size=(-1, 150),
             style=wx.LC_REPORT | wx.BORDER_SUNKEN
         )
-        self.books_ctrl.InsertColumn(0, 'ID', width=50)
-        self.books_ctrl.InsertColumn(1, 'Title', width=140)
-        self.books_ctrl.InsertColumn(2, 'Year', width=140)
+        # self.books_ctrl.InsertColumn(0, 'ID', width=50)
+        self.books_ctrl.InsertColumn(0, 'Title', width=140)
+        self.books_ctrl.InsertColumn(1, 'Year', width=140)
         self.books_ctrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_book_selected)
         main_sizer.Add(self.books_ctrl, 0, wx.ALL | wx.EXPAND, 5)
 
         # Buttons
-        self.load_button = wx.Button(self, label='Load data')
+        self.xml_button = wx.Button(self, label='Load from XML')
+        self.xml_button.Bind(wx.EVT_BUTTON, self.on_load_xml)
+        main_sizer.Add(self.xml_button, 0, wx.ALL | wx.CENTER, 5)
+        self.load_button = wx.Button(self, label='Load from DB')
         self.load_button.Bind(wx.EVT_BUTTON, self.on_load_data)
         main_sizer.Add(self.load_button, 0, wx.ALL | wx.CENTER, 5)
-        self.save_button = wx.Button(self, label='Save data')
+        self.save_button = wx.Button(self, label='Save to DB')
         self.save_button.Bind(wx.EVT_BUTTON, self.on_save_data)
         main_sizer.Add(self.save_button, 0, wx.ALL | wx.CENTER, 5)
         self.edit_button = wx.Button(self, label='Edit selected')
@@ -115,20 +119,63 @@ class MainPanel(wx.Panel):
         main_sizer.Add(self.create_book_button, 0, wx.ALL | wx.CENTER, 5)
 
         self.SetSizer(main_sizer)
+        # Database
+        self.db = db.DB()
 
-    def on_load_data(self, event):
+    def on_load_xml(self, event):
         self.selected_author_index = -1
         self.selected_book_index = -1
         # Load XML file
         with open('data.xml') as file:
             self.xml_data = xmltodict.parse(file.read())
-            # print(json.dumps(self.xml_data, indent=4))
+            print(json.dumps(self.xml_data, indent=4))
+        # Copy authors
+        self.authors = list()
+        if not isinstance(self.xml_data['library']['author'], list):
+            self.authors.append(self.xml_data['library']['author'])
+            # return [self.xml_data['library']['author']]
+        else:
+            for author in self.xml_data['library']['author']:
+                self.authors.append(author)
+        # Match books to authors
+        for author in self.authors:
+            author['books_list'] = []
+            author['id'] = int(author['id'])
+            if author.get('books') is not None:
+                if not isinstance(author['books']['book'], list):
+                    author[0]['books']['book'] = [author['books']['book']]
+                for book in author['books']['book']:
+                    book['year'] = int(book['year'])
+                    book['author_id'] = int(author['id'])
+                    author['books_list'].append(book)
+            author.pop('books')
+            author['books'] = author['books_list']
+            author.pop('books_list')
+            print(author)
+        # Author and book ids
+        self.last_author_id = int(self.xml_data['library']['ids']['author'])
+        self.last_book_id = int(self.xml_data['library']['ids']['book'])
+        # Delete xml
+        del self.xml_data
+        # Show data
+        self.on_load_data_show()
+
+    def on_load_data(self, event):
+        self.selected_author_index = -1
+        self.selected_book_index = -1
+        self.authors = self.db.get_authors_and_books()
+        # Set last ids
+        for author in self.authors:
+            if author['id'] > self.last_author_id:
+                self.last_author_id = author['id']
+            for book in author['books']:
+                if book['id'] > self.last_book_id:
+                    self.last_book_id = book['id']
         self.on_load_data_show()
 
     def on_save_data(self, event):
-        with open('data.xml', 'w') as file:
-            s = xmltodict.unparse(self.xml_data, pretty=True)
-            file.write(s)
+        # Insert data into DB
+        self.db.save_authors_and_books(self.authors)
 
     def on_load_data_show(self):
         # Show authors list
@@ -139,7 +186,7 @@ class MainPanel(wx.Panel):
         # print(json.dumps(untangle.parse('data.xml'), indent=4))
         index = 0
         for author in self.get_authors():
-            self.list_ctrl.InsertItem(index, author['id'])
+            self.list_ctrl.InsertItem(index, str(author['id']))
             self.list_ctrl.SetItem(index, 1, author['firstname'])
             self.list_ctrl.SetItem(index, 2, author['lastname'])
             index += 1
@@ -167,12 +214,12 @@ class MainPanel(wx.Panel):
         # Delete book if selected
         if self.selected_book_index >= 0:
             book = self.get_books(self.get_authors()[self.selected_author_index])[self.selected_book_index]
-            self.xml_data['library']['author'][self.selected_author_index]['books']['book'].remove(book)
+            self.authors[self.selected_author_index]['books'].remove(book)
             self.on_load_data_show()
-        # Delete author is selected
+        # Delete author if selected
         elif self.selected_author_index >= 0:
             author = self.get_authors()[self.selected_author_index]
-            self.xml_data['library']['author'].remove(author)
+            self.authors.remove(author)
             self.on_load_data_show()
             self.selected_author_index = -1
             self.selected_book_index = -1
@@ -186,9 +233,8 @@ class MainPanel(wx.Panel):
         if author['firstname'] == '' or author['lastname'] == '':
             return None
         author['id'] = self.next_author_id()
-        authors = self.get_authors()
-        authors.append(author)
-        self.xml_data['library']['author'] = authors
+        author['books'] = []
+        self.authors.append(author)
         self.selected_author_index = -1
         self.selected_book_index = -1
         self.on_load_data_show()
@@ -203,10 +249,10 @@ class MainPanel(wx.Panel):
         if book['title'] == '' or book['year'] == '':
             return None
         book['id'] = self.next_book_id()
+        book['author_id'] = self.get_authors()[self.selected_author_index]['id']
         # print(book)
         books = self.get_books(self.get_authors()[self.selected_author_index])
         books.append(book)
-        self.xml_data['library']['author'][self.selected_author_index]['books']['book'] = books
         # self.selected_author_index = -1
         self.selected_book_index = -1
         self.on_load_data_show()
@@ -219,49 +265,39 @@ class MainPanel(wx.Panel):
             return None
         self.selected_book_index = -1
         self.books_ctrl.ClearAll()
-        self.books_ctrl.InsertColumn(0, 'ID', width=50)
+        # self.books_ctrl.InsertColumn(0, 'ID', width=50)
+        self.books_ctrl.InsertColumn(0, 'Id', width=140)
         self.books_ctrl.InsertColumn(1, 'Title', width=140)
         self.books_ctrl.InsertColumn(2, 'Year', width=140)
         author = self.get_authors()[self.selected_author_index]
         books = self.get_books(author)
         index = 0
         for book in books:
-            self.books_ctrl.InsertItem(index, book['id'])
+            self.books_ctrl.InsertItem(index, str(book['id']))
             self.books_ctrl.SetItem(index, 1, book['title'])
-            self.books_ctrl.SetItem(index, 2, book['year'])
+            self.books_ctrl.SetItem(index, 2, str(book['year']))
             index += 1
 
     def on_book_selected(self, event):
         self.selected_book_index = event.Index
 
     def get_authors(self):
-        if not isinstance(self.xml_data['library']['author'], list):
-            self.xml_data['library']['author'] = [self.xml_data['library']['author']]
-            # return [self.xml_data['library']['author']]
-        return self.xml_data['library']['author']
+        return self.authors
 
     def get_books(self, author):
         if author.get('books') is None:
-            author['books'] = {}
-            author['books']['book'] = []
-        if not isinstance(author['books']['book'], list):
-            author['books']['book'] = [author['books']['book']]
-            # return [author['books']['book']]
-        return author['books']['book']
+            author['books'] = []
+        return author['books']
 
     def next_author_id(self, increment=True):
         if increment:
-            self.xml_data['library']['ids']['author'] = str(int(self.xml_data['library']['ids']['author']) + 1)
-            return str(int(self.xml_data['library']['ids']['author']) - 1)
-        else:
-            return self.xml_data['library']['ids']['author']
+            self.last_author_id = self.last_author_id + 1
+        return self.last_author_id
 
     def next_book_id(self, increment=True):
         if increment:
-            self.xml_data['library']['ids']['book'] = str(int(self.xml_data['library']['ids']['book']) + 1)
-            return str(int(self.xml_data['library']['ids']['book']) - 1)
-        else:
-            return self.xml_data['library']['ids']['book']
+            self.last_book_id = self.last_book_id + 1
+        return self.last_book_id
 
 
 class MainFrame(wx.Frame):

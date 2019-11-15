@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <library>
 	<ids>
-		<author>3</author>
-		<book>5</book>
+		<author>4</author>
+		<book>6</book>
 	</ids>
 	<author>
 		<id>1</id>
@@ -30,11 +30,6 @@
 				<id>3</id>
 				<title>Good book 2</title>
 				<year>2015</year>
-			</book>
-			<book>
-				<title>vdv</title>
-				<year>2010</year>
-				<id>4</id>
 			</book>
 		</books>
 	</author>
