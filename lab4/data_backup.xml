@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<library>
+    <ids>
+        <author>3</author>
+        <book>4</book>
+    </ids>
+    <author>
+        <id>1</id>
+        <firstname>Ivan</firstname>
+        <lastname>Petrov</lastname>
+        <books>
+            <book>
+                <id>1</id>
+                <title>Good book</title>
+                <year>2018</year>
+            </book>
+            <book>
+                <id>2</id>
+                <title>Some book</title>
+                <year>2016</year>
+            </book>
+        </books>
+    </author>
+    <author>
+        <id>2</id>
+        <firstname>Nikita</firstname>
+        <lastname>Ivanenko</lastname>
+        <books>
+            <book>
+                <id>3</id>
+                <title>Good book 2</title>
+                <year>2015</year>
+            </book>
+        </books>
+    </author>
+</library>
