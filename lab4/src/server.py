@@ -1,21 +1,20 @@
-from flask import Flask
-from flask import jsonify
-from flask import request
-from . import db
+import db
 
+from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 
-app = Flask(__name__)
 db = db.DB()
 
 
-@app.route('/get_all')
 def get_all():
-    authors = db.get_authors_and_books()
-    return jsonify(authors)
+    return db.get_authors_and_books()
 
 
-@app.route('/save_all', methods=['POST'])
-def save_all():
-    data = request.json
+def save_all(data):
     db.save_authors_and_books(data)
-    return jsonify(data)
+
+
+if __name__ == '__main__':
+    server = SimpleJSONRPCServer(('localhost', 8080))
+    server.register_function(get_all)
+    server.register_function(save_all)
+    server.serve_forever()

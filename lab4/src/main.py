@@ -3,6 +3,10 @@ import xmltodict
 import json
 import db
 import requests
+from jsonrpclib import Server
+
+
+conn = Server('http://localhost:8080')
 
 
 class Dialog(wx.Dialog):
@@ -123,8 +127,8 @@ class MainPanel(wx.Panel):
     def on_load_data(self, event):
         self.selected_author_index = -1
         self.selected_book_index = -1
-        resp = requests.get('http://127.0.0.1:5000/get_all')
-        self.authors = resp.json()
+        # resp = requests.get('http://127.0.0.1:5000/get_all')
+        self.authors = conn.get_all()
         # Set last ids
         for author in self.authors:
             if author['id'] > self.last_author_id:
@@ -135,7 +139,8 @@ class MainPanel(wx.Panel):
         self.on_load_data_show()
 
     def on_save_data(self, event):
-        requests.post('http://127.0.0.1:5000/save_all', json=self.authors)
+        # requests.post('http://127.0.0.1:5000/save_all', json=self.authors)
+        conn.save_all(self.authors)
 
     def on_load_data_show(self):
         # Show authors list
