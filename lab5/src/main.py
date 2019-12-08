@@ -2,11 +2,8 @@ import wx
 import xmltodict
 import json
 import db
-import requests
-from jsonrpclib import Server
-
-
-conn = Server('http://localhost:8080')
+import pika
+import uuid
 
 
 class Dialog(wx.Dialog):
@@ -124,11 +121,42 @@ class MainPanel(wx.Panel):
         # Database
         self.db = db.DB()
 
+        # RabbitMQ
+        self.conn = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+        self.channel = self.conn.channel()
+        result = self.channel.queue_declare(queue='moop_result', exclusive=True)
+        self.callback_queue = result.method.queue
+        self.channel.basic_consume(
+            queue=self.callback_queue,
+            on_message_callback=self.on_load_data_callback,
+            auto_ack=True)
+
     def on_load_data(self, event):
+        self.response = None
+        self.corr_id = str(uuid.uuid4())
+        self.channel.basic_publish(
+            exchange='',
+            routing_key='moop',
+            properties=pika.BasicProperties(
+                reply_to=self.callback_queue,
+                correlation_id=self.corr_id,
+            ),
+            body=json.dumps({'get_all': True}))
+        while self.response is None:
+            self.conn.process_data_events()
+
+    def on_load_data_callback(self, ch, method, properties, body):
+        print('received', body)
+        if self.corr_id != properties.correlation_id:
+            return None
+        self.response = body
         self.selected_author_index = -1
         self.selected_book_index = -1
-        # resp = requests.get('http://127.0.0.1:5000/get_all')
-        self.authors = conn.get_all()
+        b = json.loads(body)
+        print('body:', b)
+        if b == {}:
+            return None
+        self.authors = json.loads(body)
         # Set last ids
         for author in self.authors:
             if author['id'] > self.last_author_id:
@@ -139,8 +167,19 @@ class MainPanel(wx.Panel):
         self.on_load_data_show()
 
     def on_save_data(self, event):
-        # requests.post('http://127.0.0.1:5000/save_all', json=self.authors)
-        conn.save_all(self.authors)
+        self.response = None
+        self.corr_id = str(uuid.uuid4())
+        self.channel.basic_publish(
+            exchange='',
+            routing_key='moop',
+            properties=pika.BasicProperties(
+                reply_to=self.callback_queue,
+                correlation_id=self.corr_id,
+            ),
+            body=json.dumps({'save_all': True, 'data': self.authors}))
+        while self.response is None:
+            self.conn.process_data_events()
+
 
     def on_load_data_show(self):
         # Show authors list
