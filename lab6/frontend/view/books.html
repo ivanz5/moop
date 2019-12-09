@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Поиск туров</title>
+    <link href="../css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="../js/jquery-3.3.1.min.js"></script>
+    <script src="../js/popper.min.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <link href="../css/books.css" rel="stylesheet">
+    <script src="../js/books.js"></script>
+    <!-- Calendar http://www.daterangepicker.com/ -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <!-- -->
+    <style>
+        .navbar {
+            margin-bottom: 0;
+            border-radius: 0;
+        }
+    </style>
+</head>
+<body id="AviaBody">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="#" style="padding-right: 5vh">Authors and books</a>
+
+        <div class="collapse navbar-collapse" id="navbarsExample07">
+        </div>
+    </div>
+</nav>
+
+
+<div class="container" id="input-form-container" style="width: 50vw; margin-top: 80px;">
+    <div class="card" style="margin-top: 20px; padding: 20px;">
+        <form>
+            <div class="form-row">
+                <div class="col-md-2" style="margin-top: 15px;">
+                    <p class="btn btn-dark" id="load-button" style="float: right" onclick="loadAuthors()">Load data</p>
+                </div>
+                <div class="col-md-2" style="margin-top: 15px;">
+                    <p class="btn btn-dark" id="save-button" style="float: right" onclick="saveData()">Save data</p>
+                </div>
+                <div class="col-md-2" style="margin-top: 15px;">
+                    <p class="btn btn-dark" id="back-button" style="float: right; display: none;" onclick="showAuthors()">Go back</p>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="col-md-2 float-left" id="add-author-button-div" style="margin-top: 15px;">
+                    <p class="btn btn-dark" id="add-author-button" data-toggle="modal" data-target="#authorModal" onclick="editAuthor(0)" 
+                       style="display: inline-block;">Add author</p>
+                </div>
+                <div class="col-md-2 float-left" id="add-book-button-div" style="margin-top: 15px; display: none;">
+                    <p class="btn btn-dark" id="add-book-button" data-toggle="modal" data-target="#authorModal" onclick="editBook(0, 0)" 
+                       style="display: inline-block;">Add book</p>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="authorModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Author</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="recipient-name" class="col-form-label" id="modal-first-name-label">First name:</label>
+            <input type="text" class="form-control" id="first-name">
+            <input type="hidden" id="modal-author-id" value="0">
+            <input type="hidden" id="modal-book-id" value="0">
+          </div>
+          <div class="form-group">
+            <label for="message-text" class="col-form-label" id="modal-last-name-label">Last name:</label>
+            <input type="text" class="form-control" id="last-name">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="editAuthorSave()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="authors-container" style="width: 50vw; margin-bottom: 20px;">
+</div>
+
+</body>
+</html>
