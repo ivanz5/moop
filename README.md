@@ -1,5 +1,5 @@
 # moop
-Labs for MOOP (1st year masters)
+MOOP labs
 
 For lab 1 install these Python modules:
 ```
