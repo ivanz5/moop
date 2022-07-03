@@ -1,5 +1,7 @@
 # moop
 MOOP labs
+Task:
+https://sites.google.com/site/myunivasp/moop-java
 
 For lab 1 install these Python modules:
 ```
